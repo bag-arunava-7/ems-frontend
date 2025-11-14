@@ -4,16 +4,13 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
-
 import {
   MantineProvider,
   createTheme,
   ColorSchemeScript,
   Loader,
 } from "@mantine/core";
-
 import "@mantine/core/styles.css";
-
 import AuthLayout from "./components/Layout/AuthLayout";
 import Dashboard from "./components/Home/Dashboard";
 import EmployeeRoutes from "./components/routes/EmployeeRoutes";
@@ -28,7 +25,8 @@ import PayrollManagementSystem from "./components/Salary/PayrollManagementSystem
 import { QueryClient, QueryClientProvider } from "react-query";
 import { useState } from "react";
 import { MainLayout } from "./components/Layout/MainLayout";
-import ProtectedRoute from "./components/routes/ProtectedRoute";
+
+import ProtectedRoute from "./components/routes/ProtectedRoute"; // ⭐ IMPORTANT
 
 const theme = createTheme({
   primaryColor: "violet",
@@ -63,9 +61,7 @@ const theme = createTheme({
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [colorScheme, setColorScheme] = useState<any>("light");
-  const toggleColorScheme = (value?: any) =>
-    setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+  const [colorScheme] = useState("light");
 
   return (
     <>
@@ -76,29 +72,25 @@ const App = () => {
           <Loader />
           <Router>
             <Routes>
-              {/* PUBLIC ROUTE - LOGIN */}
+              {/* Public Auth Route */}
               <Route element={<AuthLayout />}>
                 <Route path="/auth" element={<AuthForm />} />
               </Route>
 
-              {/* PRIVATE ROUTES */}
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/employees/*" element={<EmployeeRoutes />} />
-                <Route path="/companies/*" element={<CompanyRoutes />} />
-                <Route path="/attendance/*" element={<AttendanceRoutes />} />
-                <Route path="/salary/*" element={<SalaryPage />} />
-                <Route path="/payroll/*" element={<PayrollManagementSystem />} />
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/employees/*" element={<EmployeeRoutes />} />
+                  <Route path="/companies/*" element={<CompanyRoutes />} />
+                  <Route path="/attendance/*" element={<AttendanceRoutes />} />
+                  <Route path="/salary/*" element={<SalaryPage />} />
+                  <Route path="/payroll/*" element={<PayrollManagementSystem />} />
+                </Route>
               </Route>
 
-              {/* Redirect any unknown URL */}
+              {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
