@@ -4,29 +4,35 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
+
 import {
   MantineProvider,
   createTheme,
   ColorSchemeScript,
   Loader,
 } from "@mantine/core";
+
 import "@mantine/core/styles.css";
+
+import { useState } from "react";
+
 import AuthLayout from "./components/Layout/AuthLayout";
 import Dashboard from "./components/Home/Dashboard";
 import EmployeeRoutes from "./components/routes/EmployeeRoutes";
 import CompanyRoutes from "./components/routes/CompanyRoutes";
 import AttendanceRoutes from "./components/routes/AttendanceRoutes";
+
 import { AuthForm } from "./components/Register/register";
 import { ProfilePage } from "./components/Profile/ProfilePage";
-import SalaryPage from "./components/Salary/Salary";
-import { Notifications } from "@mantine/notifications";
-import RingLoader from "./RingLoader";
-import PayrollManagementSystem from "./components/Salary/PayrollManagementSystem";
-import { QueryClient, QueryClientProvider } from "react-query";
-import { useState } from "react";
-import { MainLayout } from "./components/Layout/MainLayout";
 
-import ProtectedRoute from "./components/routes/ProtectedRoute"; // ⭐ IMPORTANT
+import SalaryPage from "./components/Salary/Salary";
+import PayrollManagementSystem from "./components/Salary/PayrollManagementSystem";
+
+import RingLoader from "./RingLoader";
+import { Notifications } from "@mantine/notifications";
+
+import { QueryClient, QueryClientProvider } from "react-query";
+import { MainLayout } from "./components/Layout/MainLayout";
 
 const theme = createTheme({
   primaryColor: "violet",
@@ -45,9 +51,7 @@ const theme = createTheme({
     ],
   },
   fontFamily: "Roboto, sans-serif",
-  headings: {
-    fontFamily: "Roboto, sans-serif",
-  },
+  headings: { fontFamily: "Roboto, sans-serif" },
   components: {
     Loader: Loader.extend({
       defaultProps: {
@@ -61,36 +65,51 @@ const theme = createTheme({
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [colorScheme] = useState("light");
+  // FIX: Correct type for Mantine v7
+  const [colorScheme, setColorScheme] = useState<"light" | "dark" | "auto">(
+    "light"
+  );
+
+  const toggleColorScheme = (
+    value?: "light" | "dark" | "auto"
+  ) =>
+    setColorScheme(
+      value || (colorScheme === "dark" ? "light" : "dark")
+    );
 
   return (
     <>
       <ColorSchemeScript />
+
       <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
         <QueryClientProvider client={queryClient}>
           <Notifications />
           <Loader />
+
           <Router>
             <Routes>
-              {/* Public Auth Route */}
+              {/* AUTH ROUTES */}
               <Route element={<AuthLayout />}>
                 <Route path="/auth" element={<AuthForm />} />
               </Route>
 
-              {/* Protected Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route element={<MainLayout />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/employees/*" element={<EmployeeRoutes />} />
-                  <Route path="/companies/*" element={<CompanyRoutes />} />
-                  <Route path="/attendance/*" element={<AttendanceRoutes />} />
-                  <Route path="/salary/*" element={<SalaryPage />} />
-                  <Route path="/payroll/*" element={<PayrollManagementSystem />} />
-                </Route>
+              {/* MAIN ROUTES */}
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/profile" element={<ProfilePage />} />
+
+                <Route path="/employees/*" element={<EmployeeRoutes />} />
+                <Route path="/companies/*" element={<CompanyRoutes />} />
+                <Route path="/attendance/*" element={<AttendanceRoutes />} />
+
+                <Route path="/salary/*" element={<SalaryPage />} />
+                <Route
+                  path="/payroll/*"
+                  element={<PayrollManagementSystem />}
+                />
               </Route>
 
-              {/* Catch-all redirect */}
+              {/* CATCH-ALL */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
