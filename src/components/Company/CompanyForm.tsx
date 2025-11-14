@@ -14,7 +14,10 @@ import {
   Divider,
 } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { convertToCustomDateFormat } from '../utils/date.converter';
+import {
+  convertToCustomDateFormat,
+  parseDateString,
+} from '../utils/date.converter';
 
 interface SalaryTemplateField {
   enabled: boolean;
@@ -27,87 +30,68 @@ export interface CompanyFormValues {
   contactPersonName: string;
   contactPersonNumber: string;
   status: 'ACTIVE' | 'INACTIVE';
-  companyOnboardingDate: Date | null;
-  salaryTemplates: {
-    [key: string]: SalaryTemplateField;
-  };
+  companyOnboardingDate: Date | null; // ⭐ FIXED → Date in UI
+  salaryTemplates: Record<string, SalaryTemplateField>;
 }
 
 interface CompanyFormProps {
-  initialValues?: any;
-  onSubmit: any;
+  initialValues?: CompanyFormValues;
+  onSubmit: (values: any) => void | Promise<void>;
   isLoading?: boolean;
 }
 
 const salaryTemplateFields = [
-  { id: 'name', label: 'Employee Name', type: 'text' },
-  { id: 'fatherName', label: 'Father Name', type: 'text' },
-  { id: 'companyName', label: 'Company Name', type: 'text' },
-  { id: 'designation', label: 'Designation', type: 'text' },
-  { id: 'monthlyRate', label: 'Monthly Rate', type: 'number' },
-  { id: 'basicDuty', label: 'Basic Duty', type: 'select', options: ['Full Time', 'Part Time', 'Contract'] },
-  { id: 'dutyDone', label: 'Duty Done', type: 'number' },
-  { id: 'wagesPerDay', label: 'Wages per Day', type: 'number' },
-  { id: 'basicPay', label: 'Basic Pay', type: 'number' },
-  { id: 'epfWages', label: 'EPF Wages', type: 'number' },
-  { id: 'otherAllowance', label: 'Other Allowance', type: 'number' },
-  { id: 'otherAllowanceRemark', label: 'Other Allowance Remark', type: 'text' },
-  { id: 'bonus', label: 'Bonus 8.33%', type: 'number' },
-  { id: 'grossSalary', label: 'Gross Salary', type: 'number' },
-  { id: 'pf', label: 'PF 12%', type: 'number' },
-  { id: 'esic', label: 'ESIC 0.75%', type: 'number' },
-  { id: 'advance', label: 'Advance', type: 'number' },
-  { id: 'uniform', label: 'Uniform', type: 'number' },
-  { id: 'advanceGivenBy', label: 'Advance Given By', type: 'text' },
-  { id: 'penalty', label: 'Penalty', type: 'number' },
-  { id: 'lwf', label: 'LWF 10 rupees', type: 'number' },
-  { id: 'otherDeductions', label: 'Other Deductions', type: 'number' },
-  { id: 'otherDeductionsRemark', label: 'Other Deductions Remark', type: 'text' },
-  { id: 'totalDeductions', label: 'Total Deductions', type: 'number' },
-  { id: 'netSalary', label: 'Net Salary', type: 'number' },
-  { id: 'uanNumber', label: 'UAN Number', type: 'text' },
-  { id: 'pfPaidStatus', label: 'PF Paid Status', type: 'text' },
-  { id: 'esicNumber', label: 'ESIC Number', type: 'text' },
-  { id: 'esicFilingStatus', label: 'ESIC Filing Status', type: 'text' },
+  { id: 'basicPay', label: 'Basic Pay' },
+  { id: 'bonus', label: 'Bonus' },
+  { id: 'pf', label: 'PF 12%' },
+  { id: 'esic', label: 'ESIC 0.75%' },
+  { id: 'netSalary', label: 'Net Salary' },
 ];
 
-const CompanyForm: React.FC<CompanyFormProps> = ({ initialValues, onSubmit, isLoading = false }) => {
+const buildSafeSalaryTemplate = (input?: Record<string, SalaryTemplateField>) => {
+  return Object.fromEntries(
+    salaryTemplateFields.map((f) => [
+      f.id,
+      input?.[f.id] ?? { enabled: true, value: '' },
+    ])
+  );
+};
+
+const CompanyForm: React.FC<CompanyFormProps> = ({
+  initialValues,
+  onSubmit,
+  isLoading = false,
+}) => {
   const form = useForm<CompanyFormValues>({
-    initialValues: initialValues || {
-      name: '',
-      address: '',
-      contactPersonName: '',
-      contactPersonNumber: '',
-      status: 'ACTIVE',
-      companyOnboardingDate: null,
-      salaryTemplates: Object.fromEntries(
-        salaryTemplateFields.map((field) => [
-          field.id,
-          { enabled: true, value: '' }
-        ])
-      ),
-    },
-    validate: {
-      name: (value) => (value ? null : 'Company name is required'),
-      address: (value) => (value ? null : 'Address is required'),
-      contactPersonName: (value) => (value ? null : 'Contact person name is required'),
-      contactPersonNumber: (value) => {
-        if (!value) return 'Contact number is required';
-        if (!/^\d{10}$/.test(value)) return 'Contact number must be 10 digits';
-        return null;
-      },
-      companyOnboardingDate: (value) => (value ? null : 'Onboarding date is required'),
+    initialValues: {
+      name: initialValues?.name || '',
+      address: initialValues?.address || '',
+      contactPersonName: initialValues?.contactPersonName || '',
+      contactPersonNumber: initialValues?.contactPersonNumber || '',
+      status: initialValues?.status || 'ACTIVE',
+
+      // ⭐ FIX: Convert stored string to Date when loading
+      companyOnboardingDate: initialValues?.companyOnboardingDate
+        ? parseDateString(initialValues.companyOnboardingDate as any)
+        : null,
+
+      salaryTemplates: buildSafeSalaryTemplate(initialValues?.salaryTemplates),
     },
   });
 
   const handleSubmit = form.onSubmit((values) => {
-    const formattedValues = {
+    const formatted = {
       ...values,
-      companyOnboardingDate: values.companyOnboardingDate 
+
+      // ⭐ FIX: Convert Date → dd-mm-yyyy before sending to backend
+      companyOnboardingDate: values.companyOnboardingDate
         ? convertToCustomDateFormat(values.companyOnboardingDate)
         : null,
+
+      salaryTemplates: buildSafeSalaryTemplate(values.salaryTemplates),
     };
-    onSubmit(formattedValues as unknown as CompanyFormValues);
+
+    onSubmit(formatted);
   });
 
   return (
@@ -115,22 +99,16 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ initialValues, onSubmit, isLo
       <form onSubmit={handleSubmit}>
         <Stack gap="xl">
           <Title order={2}>{initialValues ? 'Edit Company' : 'Add Company'}</Title>
-          
+
           <Grid>
             <Grid.Col span={6}>
-              <TextInput
-                label="Company Name"
-                required
-                {...form.getInputProps('name')}
-              />
+              <TextInput label="Company Name" required {...form.getInputProps('name')} />
             </Grid.Col>
+
             <Grid.Col span={6}>
-              <TextInput
-                label="Address"
-                required
-                {...form.getInputProps('address')}
-              />
+              <TextInput label="Address" required {...form.getInputProps('address')} />
             </Grid.Col>
+
             <Grid.Col span={6}>
               <TextInput
                 label="Contact Person Name"
@@ -138,6 +116,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ initialValues, onSubmit, isLo
                 {...form.getInputProps('contactPersonName')}
               />
             </Grid.Col>
+
             <Grid.Col span={6}>
               <TextInput
                 label="Contact Person Number"
@@ -145,6 +124,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ initialValues, onSubmit, isLo
                 {...form.getInputProps('contactPersonNumber')}
               />
             </Grid.Col>
+
             <Grid.Col span={6}>
               <Select
                 label="Status"
@@ -156,51 +136,37 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ initialValues, onSubmit, isLo
                 {...form.getInputProps('status')}
               />
             </Grid.Col>
+
             <Grid.Col span={6}>
               <DateInput
                 label="Company Onboarding Date"
                 required
-                {...form.getInputProps('companyOnboardingDate')}
+                value={form.values.companyOnboardingDate}
+                onChange={(d) => form.setFieldValue('companyOnboardingDate', d)}
               />
             </Grid.Col>
           </Grid>
 
           <Divider my="lg" />
-          
+
           <Title order={3}>Salary Template</Title>
-          
+
           <Grid>
-            {salaryTemplateFields.map((field) => (
-              <Grid.Col key={field.id} span={6}>
-                <Group align="center" gap="xs">
+            {salaryTemplateFields.map((f) => (
+              <Grid.Col key={f.id} span={6}>
+                <Group align="center">
                   <Checkbox
-                    {...form.getInputProps(`salaryTemplates.${field.id}.enabled`, { type: 'checkbox' })}
+                    {...form.getInputProps(`salaryTemplates.${f.id}.enabled`, {
+                      type: 'checkbox',
+                    })}
                   />
-                  {field.type === 'text' && (
-                    <TextInput
-                      label={field.label}
-                      {...form.getInputProps(`salaryTemplates.${field.id}.value`)}
-                      disabled={!form.values.salaryTemplates[field.id].enabled}
-                      style={{ flex: 1 }}
-                    />
-                  )}
-                  {field.type === 'number' && (
-                    <NumberInput
-                      label={field.label}
-                      {...form.getInputProps(`salaryTemplates.${field.id}.value`)}
-                      disabled={!form.values.salaryTemplates[field.id].enabled}
-                      style={{ flex: 1 }}
-                    />
-                  )}
-                  {field.type === 'select' && (
-                    <Select
-                      label={field.label}
-                      data={(field.options as string[]).map((option) => ({ value: option, label: option }))}
-                      {...form.getInputProps(`salaryTemplates.${field.id}.value`)}
-                      disabled={!form.values.salaryTemplates[field.id].enabled}
-                      style={{ flex: 1 }}
-                    />
-                  )}
+
+                  <NumberInput
+                    label={f.label}
+                    {...form.getInputProps(`salaryTemplates.${f.id}.value`)}
+                    disabled={!form.values.salaryTemplates[f.id].enabled}
+                    style={{ flex: 1 }}
+                  />
                 </Group>
               </Grid.Col>
             ))}

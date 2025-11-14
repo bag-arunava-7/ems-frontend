@@ -30,7 +30,6 @@ import * as XLSX from "xlsx";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 
-// Types
 interface Company {
   id: string;
   name: string;
@@ -54,18 +53,22 @@ interface AttendanceData {
   attendanceSheetUrl: string;
 }
 
-// Constants
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL || "http://localhost:3003";
 
-// Utility functions
+/**
+ * Safe month label formatter
+ */
 const formatMonthLabel = (monthString: string): string => {
-  const [year, month] = monthString.split("-");
+  if (!monthString || typeof monthString !== "string") return "Unknown Month";
+  const parts = monthString.split("-");
+  if (parts.length !== 2) return "Unknown Month";
+
+  const [year, month] = parts;
   const date = new Date(parseInt(year), parseInt(month) - 1);
   return date.toLocaleString("default", { month: "long", year: "numeric" });
 };
 
-// Custom hooks
 const useAttendanceData = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,7 +97,6 @@ const useAttendanceData = () => {
   return { attendanceData, loading, error, fetchAttendanceData };
 };
 
-// Components
 const ErrorAlert: React.FC<{ message: string }> = ({ message }) => (
   <Alert
     icon={<IconAlertCircle size="1rem" />}
@@ -175,6 +177,9 @@ const AttendanceReports: React.FC = () => {
   const { attendanceData, loading, error, fetchAttendanceData } =
     useAttendanceData();
 
+  /**
+   * Fetch companies
+   */
   const fetchCompanies = useCallback(async () => {
     setCompanyLoading(true);
     try {
@@ -194,34 +199,50 @@ const AttendanceReports: React.FC = () => {
     }
   }, []);
 
+  /**
+   * Fetch months for selected company
+   */
   const fetchAttendanceMonths = useCallback(async (companyId: string) => {
     setMonthLoading(true);
     setMonths([]);
     setSelectedMonth(null);
 
     try {
-      const response = await axios.get<{ data: AttendanceRecord[] }>(
+      const response = await axios.get<{ data: any[] }>(
         `${API_BASE_URL}/attendance/${companyId}`
       );
-      const attendanceRecords = response.data.data;
 
-      if (attendanceRecords.length === 0) {
-        throw new Error("No attendance records found for this company.");
+      const rawMonths = response.data.data || [];
+
+      // Filter valid YYYY-MM only
+      const validMonths = rawMonths.filter(
+        (m) => typeof m === "string" && /^\d{4}-\d{2}$/.test(m)
+      );
+
+      if (validMonths.length === 0) {
+        notifications.show({
+          title: "No Attendance Records",
+          message: "No valid attendance months found for this company.",
+          color: "yellow",
+        });
+        setMonths([]);
+        return;
       }
 
-      const uniqueMonths = Array.from(
-        new Set(attendanceRecords.map((record) => record.month))
-      );
-      const formattedMonths: ComboboxItem[] = uniqueMonths.map((month) => ({
+      const formattedMonths = validMonths.map((month: string) => ({
         value: month,
         label: formatMonthLabel(month),
       }));
+
       setMonths(formattedMonths);
     } catch (error: any) {
       console.error("Error fetching attendance months:", error);
+
       notifications.show({
         title: "Error",
-        message: error.response?.data?.message ?  error.response?.data?.message : "Error in fetching attendance months",
+        message: error.response?.data?.message
+          ? error.response.data.message
+          : "Error fetching attendance months",
         color: "red",
         icon: <IconX />,
       });

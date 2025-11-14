@@ -14,7 +14,7 @@ import EmployeeForm from "./EmployeeForm";
 import { EmployeeFormValues } from "./interface/employee.interface";
 import axios from "axios";
 import "@mantine/notifications/styles.css";
-import {convertToCustomDateFormat} from "../utils/date.converter";
+import { convertToCustomDateFormat } from "../utils/date.converter";
 
 const AddEmployee: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,9 @@ const AddEmployee: React.FC = () => {
 
   const fetchDesignations = async () => {
     try {
-      const response = await axios.get("http://localhost:3003/designation");
+      // 🔥 FIXED URL (added "s")
+      const response = await axios.get("http://localhost:3003/designations");
+
       setDesignations(
         response.data.data.map((designation: any) => ({
           value: designation.id,
@@ -89,42 +91,41 @@ const AddEmployee: React.FC = () => {
       });
     }
   };
-  
+
   const handleSubmit = async (values: EmployeeFormValues) => {
     setLoading(true);
     try {
       const formData = new FormData();
+
       Object.entries(values).forEach(([key, value]) => {
-        // Check if the field is a file and if a file has been selected
         if (value instanceof Date) {
           formData.append(key, convertToCustomDateFormat(value));
         } else if (value instanceof File) {
-          // Only append the file if a file has been selected
           if (value.name) {
             formData.append(key, value);
           }
         } else if (value !== null && value !== undefined) {
-          // Append non-null and non-undefined values
           formData.append(key, String(value));
         }
       });
-      
+
       await axios.post("http://localhost:3003/employees/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-  
+
       notifications.show({
         title: "Success",
         message: "Employee created successfully",
         color: "green",
         icon: <IconCheck />,
       });
-  
-      // Optionally clear form or redirect
     } catch (error: any) {
-      console.error("Error creating employee:", error.response?.data?.message || error.message);
+      console.error(
+        "Error creating employee:",
+        error.response?.data?.message || error.message
+      );
       notifications.show({
         title: "Error",
         message: error.response?.data?.message || "Something went wrong!",
@@ -135,15 +136,16 @@ const AddEmployee: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   return (
     <Container size="xl">
       <ScrollArea h={800}>
-        <Title order={2} mb="xl">Add New Employee</Title>
+        <Title order={2} mb="xl">
+          Add New Employee
+        </Title>
         <Box pos="relative">
-          <LoadingOverlay 
-            visible={loading} 
+          <LoadingOverlay
+            visible={loading}
             zIndex={1000}
             overlayProps={{ radius: "sm", blur: 2 }}
             loaderProps={{ children: <Loader size={30} type="ring" color="violet" /> }}
@@ -160,7 +162,6 @@ const AddEmployee: React.FC = () => {
       </ScrollArea>
     </Container>
   );
-  
 };
 
 export default AddEmployee;

@@ -1,44 +1,73 @@
-import { useMantineColorScheme, Box, Group, ActionIcon, Image } from "@mantine/core";
-import { IconSun, IconMoonStars } from "@tabler/icons-react";
-import UserMenu from "./UserMenu";
+import React from "react";
+import {
+  Group,
+  Text,
+  Menu,
+  Avatar,
+  ActionIcon,
+  useMantineColorScheme,
+} from "@mantine/core";
+import { IconChevronDown, IconSun, IconMoon } from "@tabler/icons-react";
 
-export function Header() {
+const Header = () => {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const dark = colorScheme === "dark";
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/auth"; // 🔥 LOGIN PAGE
+  };
 
   return (
-    <Box
-      style={(theme) => ({
-        height: "100%",
-        padding: theme.spacing.md,
-        backgroundColor:
-          colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        borderBottom: `1px solid ${
-          colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[2]
-        }`,
-        display: "flex",
-        alignItems: "center",
+    <Group
+      h={60}
+      px="md"
+      bg="white"
+      style={{
+        borderBottom: "1px solid #e5e5e5",
         justifyContent: "space-between",
-      })}
+      }}
     >
-      <Group fw={1000}>
-        ROSE
-      </Group>
+      {/* App Name */}
+      <Text fw={700} fz="xl">
+        StaffHub
+      </Text>
 
       <Group>
+        {/* 🔥 Theme Toggle */}
         <ActionIcon
-          variant="outline"
-          color={colorScheme === "dark" ? "yellow" : "blue"}
           onClick={() => toggleColorScheme()}
-          title="Toggle color scheme"
+          variant="light"
+          size="lg"
+          radius="md"
         >
-          {colorScheme === "dark" ? (
-            <IconSun size={18} />
-          ) : (
-            <IconMoonStars size={18} />
-          )}
+          {dark ? <IconSun size={20} /> : <IconMoon size={20} />}
         </ActionIcon>
-        <UserMenu />
+
+        {/* User Menu */}
+        <Menu shadow="md" width={180}>
+          <Menu.Target>
+            <Group style={{ cursor: "pointer" }}>
+              <Avatar radius="xl" />
+              <ActionIcon variant="subtle">
+                <IconChevronDown size={18} />
+              </ActionIcon>
+            </Group>
+          </Menu.Target>
+
+          <Menu.Dropdown>
+            <Menu.Item onClick={() => (window.location.href = "/profile")}>
+              Profile
+            </Menu.Item>
+
+            <Menu.Item color="red" onClick={handleLogout}>
+              Logout
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
       </Group>
-    </Box>
+    </Group>
   );
-}
+};
+
+export default Header;

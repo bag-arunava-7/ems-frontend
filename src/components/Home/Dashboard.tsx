@@ -1,15 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { 
-  Card, Text, Group, Stack, Title, Paper, ThemeIcon, Progress, Container, Grid, 
-  useMantineTheme, Loader, Alert, Skeleton
-} from '@mantine/core';
-import { 
-  IconUsers, IconBuilding, IconUserPlus, IconBuildingSkyscraper,
-  IconArrowUpRight, IconArrowDownRight, IconChartBar, IconAlertCircle
-} from '@tabler/icons-react';
-import appTheme from '../../appTheme';
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  Text,
+  Group,
+  Stack,
+  Title,
+  Paper,
+  ThemeIcon,
+  Progress,
+  Container,
+  Grid,
+  useMantineTheme,
+  Loader,
+  Alert,
+} from "@mantine/core";
+import {
+  IconUsers,
+  IconBuilding,
+  IconUserPlus,
+  IconBuildingSkyscraper,
+  IconArrowUpRight,
+  IconArrowDownRight,
+  IconChartBar,
+  IconAlertCircle,
+} from "@tabler/icons-react";
+import api from "../../api/axios"; // ✅ Correct axios instance
+import appTheme from "../../appTheme";
 
+// ------------------- Interfaces -------------------
 interface DashboardData {
   totalEmployees: number;
   newEmployeesThisMonth: number;
@@ -22,7 +40,13 @@ interface CompanyData {
   employeeCount: number;
 }
 
-const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
+// ------------------- Stat Card -------------------
+const StatCard: React.FC<{
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: string;
+}> = ({ title, value, icon, color }) => (
   <Paper withBorder p="md" radius="md" shadow="sm">
     <Group align="apart">
       <Text size="sm" c="dimmed" tt="uppercase" fw={600}>
@@ -33,11 +57,14 @@ const StatCard: React.FC<{ title: string; value: number | string; icon: React.Re
       </ThemeIcon>
     </Group>
     <Group align="flex-end" gap="xs" mt={25}>
-      <Text fw={700} fz="xl">{value}</Text>
+      <Text fw={700} fz="xl">
+        {value}
+      </Text>
     </Group>
   </Paper>
 );
 
+// ------------------- Main Dashboard -------------------
 const Dashboard: React.FC = () => {
   const theme = useMantineTheme();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -48,16 +75,17 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ✅ Call backend endpoints with token
         const [dashboardResponse, companyResponse] = await Promise.all([
-          axios.get('http://localhost:3003/dashboard'),
-          axios.get('http://localhost:3003/companies/employee-count')
+          api.get("/dashboard/report"), // Correct backend endpoint
+          api.get("/companies/employee-count"), // Correct second endpoint
         ]);
 
         setDashboardData(dashboardResponse.data.data);
         setCompanyData(companyResponse.data.data);
       } catch (err) {
-        setError('Failed to fetch dashboard data. Please try again later.');
-        console.error('Error fetching data:', err);
+        setError("Failed to fetch dashboard data. Please try again later.");
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
@@ -88,42 +116,50 @@ const Dashboard: React.FC = () => {
     return null;
   }
 
-  const employeeGrowth = dashboardData.newEmployeesThisMonth / dashboardData.totalEmployees * 100;
-  const companyGrowth = dashboardData.newCompaniesThisMonth / dashboardData.totalCompanies * 100;
+  const employeeGrowth =
+    dashboardData.totalEmployees > 0
+      ? (dashboardData.newEmployeesThisMonth / dashboardData.totalEmployees) * 100
+      : 0;
+
+  const companyGrowth =
+    dashboardData.totalCompanies > 0
+      ? (dashboardData.newCompaniesThisMonth / dashboardData.totalCompanies) * 100
+      : 0;
 
   return (
     <Container size="xl">
       <Stack gap="xl" py="xl">
         <Title order={1}>Dashboard</Title>
-        
+
+        {/* Stats Cards */}
         <Grid>
           <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-            <StatCard 
-              title="Total Employees" 
+            <StatCard
+              title="Total Employees"
               value={dashboardData.totalEmployees}
               icon={<IconUsers size="1.4rem" stroke={1.5} />}
               color={theme.primaryColor}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-            <StatCard 
-              title="New Employees" 
+            <StatCard
+              title="New Employees"
               value={dashboardData.newEmployeesThisMonth}
               icon={<IconUserPlus size="1.4rem" stroke={1.5} />}
               color="green"
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-            <StatCard 
-              title="Total Companies" 
+            <StatCard
+              title="Total Companies"
               value={dashboardData.totalCompanies}
               icon={<IconBuilding size="1.4rem" stroke={1.5} />}
               color="violet"
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
-            <StatCard 
-              title="New Companies" 
+            <StatCard
+              title="New Companies"
               value={dashboardData.newCompaniesThisMonth}
               icon={<IconBuildingSkyscraper size="1.4rem" stroke={1.5} />}
               color="orange"
@@ -131,6 +167,7 @@ const Dashboard: React.FC = () => {
           </Grid.Col>
         </Grid>
 
+        {/* Employee & Company Growth */}
         <Grid>
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -140,15 +177,25 @@ const Dashboard: React.FC = () => {
                   <IconChartBar size={16} />
                 </Group>
               </Card.Section>
-              <Text mt="md" c={employeeGrowth > 0 ? "teal" : "red"} size="xl" fw={700}>
+              <Text
+                mt="md"
+                c={employeeGrowth > 0 ? "teal" : "red"}
+                size="xl"
+                fw={700}
+              >
                 {employeeGrowth.toFixed(2)}%
-                {employeeGrowth > 0 ? <IconArrowUpRight size="1rem" stroke={1.5} /> : <IconArrowDownRight size="1rem" stroke={1.5} />}
+                {employeeGrowth > 0 ? (
+                  <IconArrowUpRight size="1rem" stroke={1.5} />
+                ) : (
+                  <IconArrowDownRight size="1rem" stroke={1.5} />
+                )}
               </Text>
               <Text mt="xs" c="dimmed" size="sm">
                 New employees this month
               </Text>
             </Card>
           </Grid.Col>
+
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Card shadow="sm" padding="lg" radius="md" withBorder>
               <Card.Section withBorder inheritPadding py="xs">
@@ -157,9 +204,18 @@ const Dashboard: React.FC = () => {
                   <IconChartBar size={16} />
                 </Group>
               </Card.Section>
-              <Text mt="md" c={companyGrowth > 0 ? "teal" : "red"} size="xl" fw={700}>
+              <Text
+                mt="md"
+                c={companyGrowth > 0 ? "teal" : "red"}
+                size="xl"
+                fw={700}
+              >
                 {companyGrowth.toFixed(2)}%
-                {companyGrowth > 0 ? <IconArrowUpRight size="1rem" stroke={1.5} /> : <IconArrowDownRight size="1rem" stroke={1.5} />}
+                {companyGrowth > 0 ? (
+                  <IconArrowUpRight size="1rem" stroke={1.5} />
+                ) : (
+                  <IconArrowDownRight size="1rem" stroke={1.5} />
+                )}
               </Text>
               <Text mt="xs" c="dimmed" size="sm">
                 New companies this month
@@ -168,6 +224,7 @@ const Dashboard: React.FC = () => {
           </Grid.Col>
         </Grid>
 
+        {/* Companies by Employee Count */}
         <Grid>
           <Grid.Col span={12}>
             <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -182,12 +239,18 @@ const Dashboard: React.FC = () => {
                   <div key={index}>
                     <Group align="apart" mb={5}>
                       <Text size="sm">{company.name}</Text>
-                      <Text size="sm" c="dimmed">{company.employeeCount}</Text>
+                      <Text size="sm" c="dimmed">
+                        {company.employeeCount}
+                      </Text>
                     </Group>
-                    <Progress 
-                      value={(company.employeeCount / Math.max(...companyData.map(c => c.employeeCount))) * 100} 
-                      color={appTheme.primaryColor} 
-                      size="sm" 
+                    <Progress
+                      value={
+                        (company.employeeCount /
+                          Math.max(...companyData.map((c) => c.employeeCount))) *
+                        100
+                      }
+                      color={appTheme.primaryColor}
+                      size="sm"
                       radius="xl"
                     />
                   </div>

@@ -82,7 +82,8 @@ const UserMenu: React.FunctionComponent = () => {
         >
           <Group>
             <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center">
-              {user.name.split(' ').map(n => n[0]).join('')}
+             {user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+
             </div>
             <div>
               <Text size="sm" fw={500}>{user.name}</Text>

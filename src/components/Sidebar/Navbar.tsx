@@ -16,7 +16,6 @@ import {
   IconChevronRight,
   IconDashboard,
   IconReportAnalytics,
-  IconSearch,
   IconUpload,
   IconUserPlus,
   IconUsers,
@@ -47,7 +46,7 @@ const subLinksData = {
   employees: [
     { icon: IconUsers, label: "List Employees", link: "/employees" },
     { icon: IconUserPlus, label: "Add Employee", link: "/employees/add" },
-    { icon: IconSearch, label: "Advanced Search", link: "/employees/search" },
+    // Advanced Search REMOVED
   ],
   attendance: [
     {
@@ -77,6 +76,7 @@ function NavbarLink({ icon: Icon, label, link, subLinks }: LinkProps) {
   const theme = useMantineTheme();
   const location = useLocation();
   const [opened, setOpened] = useState(false);
+
   const hasSubLinks = !!subLinks;
   const isActive = link
     ? location.pathname === link
@@ -105,8 +105,8 @@ function NavbarLink({ icon: Icon, label, link, subLinks }: LinkProps) {
           fontWeight: 500,
           backgroundColor: isActive
             ? colorScheme === "dark"
-              ? theme.colors.dark[4] // Active state (dark mode)
-              : theme.colors.grape[1] // Active state (light mode)
+              ? theme.colors.dark[4]
+              : theme.colors.grape[1]
             : "",
           transition: "background-color 0.3s ease",
         }}

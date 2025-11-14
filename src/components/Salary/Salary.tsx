@@ -17,7 +17,7 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import axios from "axios";
 
-// Type definitions (same as before)
+// ----------- Type Definitions -----------
 type Company = {
   id: string;
   name: string;
@@ -55,6 +55,7 @@ type CompanyOption = {
   salaryTemplates: SalaryTemplate[];
 };
 
+// ----------- Component Starts -----------
 const SalaryPage: React.FC = () => {
   const [active, setActive] = useState<number>(0);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
@@ -62,44 +63,48 @@ const SalaryPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [salaryTemplate, setSalaryTemplate] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [columnDefs, setColumnDefs] = useState<any[]>([]);
+  const [gridApi, setGridApi] = useState<any>(null);
 
-  const [columnDefs, setColumnDefs] = useState([] as any);
-  const [gridApi, setGridApi] = useState(null as any);
-
+  // ----------- Fetch Companies -----------
   useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get<{ data: { companies: Company[] } }>(
+          "http://localhost:3003/companies"
+        );
+        const companyList = response.data?.data?.companies || [];
+        setCompanies(
+          companyList.map((company) => ({
+            value: company.id,
+            label: company.name,
+            salaryTemplates: company.salaryTemplates || [],
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
+    };
+
     fetchCompanies();
   }, []);
 
-  const fetchCompanies = async () => {
-    try {
-      const response = await axios.get<{ data: { companies: Company[] } }>(
-        "http://localhost:3003/companies"
-      );
-      setCompanies(
-        response.data.data.companies.map((company) => ({
-          value: company.id,
-          label: company.name,
-          salaryTemplates: company.salaryTemplates,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-    }
-  };
-
+  // ----------- Fetch Employees -----------
   const fetchEmployees = async (companyId: string) => {
+    if (!companyId) return;
     try {
       const response = await axios.get<{ data: Employee[] }>(
         `http://localhost:3003/companies/${companyId}/employees`
       );
-      const activeEmployees = response.data.data.filter(
+      const activeEmployees = response.data?.data?.filter(
         (emp) => !emp.leavingDate
       );
       setEmployees(
         activeEmployees.map((emp) => ({
           ...emp,
-          name: `${emp.title} ${emp.firstName} ${emp.lastName}`,
+          name: `${emp.title ? emp.title + " " : ""}${emp.firstName} ${
+            emp.lastName
+          }`,
         }))
       );
     } catch (error) {
@@ -107,21 +112,28 @@ const SalaryPage: React.FC = () => {
     }
   };
 
-  const handleCompanySelect = (value: string) => {
-    setSelectedCompany(value);
-    const company = companies.find((c) => c.value === value);
-    if (
-      company &&
-      company.salaryTemplates &&
-      company.salaryTemplates.length > 0
-    ) {
-      const template = company.salaryTemplates[0].fields;
-      const enabledFields = Object.keys(template).filter(
-        (key) => template[key].enabled
+  // ----------- Handle Company Select -----------
+  const handleCompanySelect = (company: CompanyOption | undefined) => {
+    if (!company || typeof company !== "object") {
+      console.warn("⚠️ Invalid or empty company data received:", company);
+      setSelectedCompany("");
+      setSalaryTemplate([]);
+      setColumnDefs([]);
+      setEmployees([]);
+      return;
+    }
+
+    setSelectedCompany(company.value);
+    console.log("✅ Company selected:", company);
+
+    const templates = company.salaryTemplates || [];
+    if (templates.length > 0) {
+      const fields = templates[0].fields || {};
+      const enabledFields = Object.keys(fields).filter(
+        (key) => fields[key]?.enabled
       );
       setSalaryTemplate(enabledFields);
 
-      // Update column definitions
       const newColumnDefs = [
         { headerName: "Name", field: "name", filter: true, sortable: true },
         {
@@ -146,9 +158,8 @@ const SalaryPage: React.FC = () => {
             const newValue = Number(params.newValue);
             return isNaN(newValue) ? null : newValue;
           },
-          valueFormatter: (params: any) => {
-            return params.value != null ? Number(params.value).toFixed(2) : "";
-          },
+          valueFormatter: (params: any) =>
+            params.value != null ? Number(params.value).toFixed(2) : "",
         },
         ...enabledFields.map((field) => ({
           headerName: field,
@@ -158,32 +169,57 @@ const SalaryPage: React.FC = () => {
             const newValue = Number(params.newValue);
             return isNaN(newValue) ? null : newValue;
           },
-          valueFormatter: (params: any) => {
-            return params.value != null ? Number(params.value).toFixed(2) : "";
-          },
+          valueFormatter: (params: any) =>
+            params.value != null ? Number(params.value).toFixed(2) : "",
         })),
       ];
       setColumnDefs(newColumnDefs);
+    } else {
+      setSalaryTemplate([]);
+      setColumnDefs([
+        { headerName: "Name", field: "name", filter: true, sortable: true },
+        {
+          headerName: "Designation",
+          field: "designation",
+          filter: true,
+          sortable: true,
+        },
+        {
+          headerName: "Department",
+          field: "department",
+          filter: true,
+          sortable: true,
+        },
+        {
+          headerName: "Salary",
+          field: "salary",
+          filter: "agNumberColumnFilter",
+          sortable: true,
+          editable: true,
+        },
+      ]);
     }
   };
 
+  // ----------- Step Controls -----------
   const nextStep = () => {
+    if (active === 0 && !selectedCompany) {
+      console.warn("Please select a company first!");
+      return;
+    }
     if (active === 1) {
       fetchEmployees(selectedCompany);
     }
-    setActive((current) => (current < 3 ? current + 1 : current));
+    setActive((cur) => (cur < 2 ? cur + 1 : cur));
   };
 
-  const prevStep = () =>
-    setActive((current) => (current > 0 ? current - 1 : current));
+  const prevStep = () => setActive((cur) => (cur > 0 ? cur - 1 : cur));
 
-  const onGridReady = (params: any) => {
-    setGridApi(params.api);
-  };
+  // ----------- Grid Handlers -----------
+  const onGridReady = (params: any) => setGridApi(params.api);
 
   const onCellValueChanged = useCallback((event: any) => {
     console.log("Cell value changed:", event);
-    // Here you can handle cell value changes, e.g., update state or send to a server
   }, []);
 
   const defaultColDef = useMemo(
@@ -196,17 +232,21 @@ const SalaryPage: React.FC = () => {
   );
 
   const onFilterTextBoxChanged = useCallback(() => {
-    gridApi.setQuickFilter(
-      (document.getElementById("filter-text-box") as HTMLInputElement).value
-    );
+    if (!gridApi) return;
+    const input = document.getElementById(
+      "filter-text-box"
+    ) as HTMLInputElement | null;
+    if (input) gridApi.setQuickFilter(input.value);
   }, [gridApi]);
 
+  // ----------- Return UI -----------
   return (
     <Container size="xl" py="xl">
       <Paper shadow="sm" p="xl" withBorder>
         <Title order={2} mb="md">
           Salary Management
         </Title>
+
         <Stepper
           active={active}
           onStepClick={setActive}
@@ -214,17 +254,28 @@ const SalaryPage: React.FC = () => {
           mb="xl"
           allowNextStepsSelect={false}
         >
+          {/* Step 1: Select Company */}
           <Stepper.Step label="Select Company" description="Choose a company">
             <Paper p="md" mt="md">
               <Select
-                label="Company"
-                placeholder="Select a company"
-                data={companies}
-                value={selectedCompany}
-                onChange={(value) => handleCompanySelect(value as string)}
+                label="Select Company"
+                data={
+                  companies?.map((c) => ({ value: c.value, label: c.label })) ||
+                  []
+                }
+                value={selectedCompany || null}
+                onChange={(value) => {
+                  const company = companies.find((c) => c.value === value);
+                  handleCompanySelect(company);
+                }}
+                searchable
+                clearable
+                placeholder="Select a company..."
               />
             </Paper>
           </Stepper.Step>
+
+          {/* Step 2: Select Month */}
           <Stepper.Step label="Select Month" description="Choose a month">
             <Paper p="md" mt="md">
               <MonthPickerInput
@@ -236,6 +287,8 @@ const SalaryPage: React.FC = () => {
               />
             </Paper>
           </Stepper.Step>
+
+          {/* Step 3: Salary Sheet */}
           <Stepper.Step
             label="Salary Sheet"
             description="View and edit salary sheet"

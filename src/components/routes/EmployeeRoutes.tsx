@@ -1,8 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import ListEmployees from "../Employee/ListEmployees";
 import AddEmployee from "../Employee/AddEmployee";
-import {EditEmployee} from "../Employee/Edit";
-import AdvancedEmployeeSearch from "../Advanced Search/AdvancedEmployeeSearch";
+import { EditEmployee } from "../Employee/Edit";
 import GetEmployeeByPage from "../Employee/GetEmployeeById";
 
 const EmployeeRoutes = () => (
@@ -12,7 +11,6 @@ const EmployeeRoutes = () => (
     <Route path="edit/:id" element={<EditEmployee />} />
     <Route path="edit" element={<EditEmployee />} />
     <Route path=":id" element={<GetEmployeeByPage />} />
-    <Route path="search" element={<AdvancedEmployeeSearch />} />
   </Routes>
 );
 
