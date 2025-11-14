@@ -1,13 +1,13 @@
 import axios from "axios";
 
-// ✅ Your backend runs on port 3003
-const BASE_URL = "http://localhost:3003";
+// 🔥 Use your deployed backend URL on Render
+const BASE_URL = "https://ems-backend-ss37.onrender.com";
 
 const api = axios.create({
   baseURL: BASE_URL,
 });
 
-// ✅ Automatically include your JWT access token
+// 🔒 Automatically attach JWT access token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
